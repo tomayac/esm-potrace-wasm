@@ -95,11 +95,13 @@ async function loadFromImageData(imagedata, width, height, config, params) {
     height,
     c.transform,
     c.pathonly,
-    params.turdsize,
-    params.turnpolicy,
-    params.alphamax,
-    params.opticurve,
-    params.opttolerance
+    (params.turdsize = params.turdsize !== undefined ? params.turdsize : 0.2),
+    (params.turnpolicy =
+      params.turnpolicy !== undefined ? params.turnpolicy : 4),
+    (params.alphamax = params.alphamax !== undefined ? params.alphamax : 1),
+    (params.opticurve = params.opticurve !== undefined ? params.opticurve : 1),
+    (params.opttolerance =
+      params.opttolerance !== undefined ? params.opttolerance : 0.2)
   );
 
   if (config.pathonly) {
