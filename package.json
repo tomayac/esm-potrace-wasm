@@ -1,0 +1,54 @@
+{
+  "name": "esm-potrace-wasm",
+  "version": "0.0.1",
+  "description": "A modern ESM build of the Potrace library for use in the browser.",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "module": "./dist/index.js",
+  "type": "module",
+  "files": [
+    "./dist/index.js"
+  ],
+  "scripts": {
+    "clean": "shx rm -rf ./dist",
+    "build": "npm run clean && shx mkdir ./dist && bash ./build.sh && npm run terser",
+    "terser": "npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.js -- ./dist/index.js",
+    "prepare": "npm run build",
+    "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/",
+    "fix": "npx prettier --write ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tomayac/esm-potrace-wasm.git"
+  },
+  "author": "Thomas Steiner (tomac@google.com)",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/tomayac/esm-potrace-wasm/issues"
+  },
+  "homepage": "https://github.com/tomayac/esm-potrace-wasm#readme",
+  "devDependencies": {
+    "prettier": "^2.4.0",
+    "shx": "^0.3.3",
+    "terser": "^5.8.0",
+    "eslint": "^7.32.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-prettier": "^8.3.0"
+  },
+  "eslintConfig": {
+    "parserOptions": {
+      "ecmaVersion": 2020,
+      "sourceType": "module"
+    },
+    "extends": [
+      "google",
+      "prettier"
+    ],
+    "rules": {
+      "valid-jsdoc": "off"
+    }
+  }
+}
