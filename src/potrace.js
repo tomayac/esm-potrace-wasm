@@ -76,9 +76,9 @@ async function loadFromImageData(imagedata, width, height, config, params) {
 
   for (let i = 0; i < imagedata.length; i += 4) {
     const r = imagedata[i];
-      const g = imagedata[i + 1];
-      const b = imagedata[i + 2];
-      const a = imagedata[i + 3];
+    const g = imagedata[i + 1];
+    const b = imagedata[i + 2];
+    const a = imagedata[i + 3];
 
     if (c.colorFilter(r, g, b, a)) {
       // each number contains 8 pixels from rightmost bit.
