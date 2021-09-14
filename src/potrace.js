@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /**
  * This file will be inserted to generated output when building the library.
  */
@@ -128,4 +129,7 @@ function wrapStart() {
   ]);
 }
 
-export { loadFromCanvas, loadFromImageData };
+// export the functions in server env.
+if (typeof module !== 'undefined') {
+  module.exports = { loadFromCanvas, loadFromImageData };
+}
