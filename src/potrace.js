@@ -70,7 +70,13 @@ async function loadFromCanvas(canvas, config, params) {
  * @param config for customizing.
  * @returns promise that emits a svg string or path data array.
  */
-async function loadFromImageData(imagedata, width, height, config, params) {
+async function loadFromImageData(
+  imagedata,
+  width,
+  height,
+  config,
+  params = {}
+) {
   const start = wrapStart();
   const data = new Array(Math.ceil(imagedata.length / 32)).fill(0);
   const c = buildConfig(config);
