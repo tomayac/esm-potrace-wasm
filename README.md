@@ -11,15 +11,29 @@ npm install --save esm-potrace-wasm
 ## Usage
 
 ```js
-import { loadFromCanvas } from 'esm-potrace-wasm';
+import potrace from 'esm-potrace-wasm';
 
-// `canvas` is a reference to a canvas element.
-// `config` is an optional configuration object.
-try {
-  const svg = await loadFromCanvas(canvas, config);
-} catch (err) {
-  console.error(err.name, err.message);
-}
+/**
+ * The `imageBitmapSource` parameter is an `ImageBitmapSource`, that is any of:
+ * - `HTMLImageElement`
+ * - `SVGImageElement`
+ * - `HTMLVideoElement`
+ * - `HTMLCanvasElement`
+ * - `ImageData`
+ * - `ImageBitmap`
+ * - `Blob`
+ */
+const svg = await potrace(
+  imageBitmapSource,
+  (options = {
+    turdsize: 2,
+    turnpolicy: 4,
+    alphamax: 1,
+    opticurve: 1,
+    opttolerance: 0.2,
+    pathonly: false,
+  })
+);
 ```
 
 ## Demo

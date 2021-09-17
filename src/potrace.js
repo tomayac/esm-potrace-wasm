@@ -1,45 +1,110 @@
-/* eslint-disable no-unused-vars */
 /**
- * This file will be inserted to generated output when building the library.
+ * @param {ImageBitmapSource} imageBitmapSource
+ * @param {Object} options
+ * @return {Promise<string>}
  */
-
-/**
- * @param colorFilter return true if given pixel will be traced.
- * @param transform whether add the <transform /> tag to reduce generated svg length.
- * @param pathonly only returns concatenated path data.
- */
-const defaultConfig = {
-  colorFilter: (r, g, b, a) => a && 0.2126 * r + 0.7152 * g + 0.0722 * b < 128,
-  transform: true,
-  pathonly: false,
+const potrace = async (imageBitmapSource, options = {}) => {
+  options = Object.assign(
+    {
+      turdsize: 2,
+      turnpolicy: 4,
+      alphamax: 1,
+      opticurve: 1,
+      opttolerance: 0.2,
+      pathonly: false,
+    },
+    options
+  );
+  const colorFilter = (r, g, b, a) =>
+    a && 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
+  /** @type {ImageData} */
+  let imageData;
+  if (imageBitmapSource instanceof Blob) {
+    imageData = await (async () => {
+      return new Promise((resolve) => {
+        const url = URL.createObjectURL(imageBitmapSource);
+        const image = new Image();
+        image.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            throw new Error('Canvas is not supported.');
+          }
+          const canvasImageSource = /** @type {CanvasImageSource} */ (image);
+          canvas.width = Number(canvasImageSource.width);
+          canvas.height = Number(canvasImageSource.height);
+          ctx.drawImage(canvasImageSource, 0, 0, canvas.width, canvas.height);
+          resolve(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        };
+        image.src = url;
+      });
+    })();
+  } else if (
+    imageBitmapSource instanceof HTMLImageElement ||
+    imageBitmapSource instanceof SVGImageElement ||
+    imageBitmapSource instanceof HTMLVideoElement ||
+    imageBitmapSource instanceof HTMLCanvasElement ||
+    imageBitmapSource instanceof ImageBitmap
+  ) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Canvas is not supported.');
+    }
+    const canvasImageSource = imageBitmapSource;
+    canvas.width = Number(canvasImageSource.width);
+    canvas.height = Number(canvasImageSource.height);
+    ctx.drawImage(canvasImageSource, 0, 0, canvas.width, canvas.height);
+    imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    document.body.append(canvas);
+  } else {
+    imageData = imageBitmapSource;
+  }
+  const start = wrapStart();
+  await ready();
+  const data = new Array(Math.ceil(imageData.data.length / 32)).fill(0);
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    const r = imageData.data[i];
+    const g = imageData.data[i + 1];
+    const b = imageData.data[i + 2];
+    const a = imageData.data[i + 3];
+    if (colorFilter(r, g, b, a)) {
+      const index = Math.floor(i / 4);
+      data[Math.floor(index / 8)] += 1 << index % 8;
+    }
+  }
+  const result = start(
+    data,
+    imageData.width,
+    imageData.height,
+    true,
+    options.pathonly,
+    options.turdsize,
+    options.turnpolicy,
+    options.alphamax,
+    options.opticurve,
+    options.opttolerance
+  );
+  if (options.pathonly) {
+    return result
+      .split('M')
+      .filter((path) => path)
+      .map((path) => 'M' + path);
+  }
+  return result;
 };
 
 /**
- * @param config for customizing.
- * @returns merged config with default value.
- */
-function buildConfig(config) {
-  if (!config) {
-    return Object.assign({}, defaultConfig);
-  }
-  const merged = Object.assign({}, config);
-  for (const prop in defaultConfig) {
-    if (!config.hasOwnProperty(prop)) {
-      merged[prop] = defaultConfig[prop];
-    }
-  }
-  return merged;
-}
-
-/**
- * @returns promise to wait for wasm loaded.
+ * @return {Promise<void>} promise to wait for wasm loaded.
  */
 function ready() {
   return new Promise((resolve) => {
+    // @ts-ignore
     if (runtimeInitialized) {
       resolve();
       return;
     }
+    // @ts-ignore
     Module.onRuntimeInitialized = () => {
       resolve();
     };
@@ -47,82 +112,10 @@ function ready() {
 }
 
 /**
- * @param canvas to be converted for svg.
- * @param config for customizing.
- * @returns promise that emits a svg string or path data array.
- */
-async function loadFromCanvas(canvas, config, params) {
-  const ctx = canvas.getContext('2d');
-  const imagedata = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  return loadFromImageData(
-    imagedata,
-    canvas.width,
-    canvas.height,
-    config,
-    params
-  );
-}
-
-/**
- * @param imagedata to be converted for svg.
- * @param width for the imageData.
- * @param height for the imageData.
- * @param config for customizing.
- * @returns promise that emits a svg string or path data array.
- */
-async function loadFromImageData(
-  imagedata,
-  width,
-  height,
-  config,
-  params = {}
-) {
-  const start = wrapStart();
-  const data = new Array(Math.ceil(imagedata.length / 32)).fill(0);
-  const c = buildConfig(config);
-
-  for (let i = 0; i < imagedata.length; i += 4) {
-    const r = imagedata[i];
-    const g = imagedata[i + 1];
-    const b = imagedata[i + 2];
-    const a = imagedata[i + 3];
-
-    if (c.colorFilter(r, g, b, a)) {
-      // each number contains 8 pixels from rightmost bit.
-      const index = Math.floor(i / 4);
-      data[Math.floor(index / 8)] += 1 << index % 8;
-    }
-  }
-
-  await ready();
-  const result = start(
-    data,
-    width,
-    height,
-    c.transform,
-    c.pathonly,
-    (params.turdsize = params.turdsize !== undefined ? params.turdsize : 0.2),
-    (params.turnpolicy =
-      params.turnpolicy !== undefined ? params.turnpolicy : 4),
-    (params.alphamax = params.alphamax !== undefined ? params.alphamax : 1),
-    (params.opticurve = params.opticurve !== undefined ? params.opticurve : 1),
-    (params.opttolerance =
-      params.opttolerance !== undefined ? params.opttolerance : 0.2)
-  );
-
-  if (config.pathonly) {
-    return result
-      .split('M')
-      .filter((path) => path)
-      .map((path) => 'M' + path);
-  }
-  return result;
-}
-
-/**
  * @returns wrapped function for start.
  */
 function wrapStart() {
+  // @ts-ignore
   return cwrap('start', 'string', [
     'array', // pixels
     'number', // width
@@ -139,5 +132,5 @@ function wrapStart() {
 
 // export the functions in server env.
 if (typeof module !== 'undefined') {
-  module.exports = { loadFromCanvas, loadFromImageData };
+  module.exports = potrace;
 }

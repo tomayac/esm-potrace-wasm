@@ -1,0 +1,37 @@
+:root {
+  color-scheme: dark light;
+}
+
+html {
+  box-sizing: border-box;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+svg {
+  background-color: #fff;
+  color: #000;
+}
+
+@media (prefers-color-scheme: dark) {
+  svg {
+    background-color: #fff;
+    color: #000;
+  }
+}
+
+/* images and videos max out at full width */
+img,
+video {
+  height: auto;
+  max-width: 100%;
+}

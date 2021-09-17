@@ -1,6 +1,6 @@
 {
   "name": "esm-potrace-wasm",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "A modern ESM build of the Potrace library for use in the browser.",
   "main": "./dist/index.min.js",
   "browser": "./dist/index.min.js",
@@ -14,8 +14,9 @@
     "dist/"
   ],
   "scripts": {
+    "start": "npx http-server",
     "clean": "shx rm -rf ./dist",
-    "build": "npm run clean && shx mkdir ./dist && bash ./build.sh && shx echo \"export { loadFromCanvas, loadFromImageData };\" >> ./dist/index.js && npm run terser",
+    "build": "npm run clean && shx mkdir ./dist && bash ./build.sh && shx echo \"export default potrace;\" >> ./dist/index.js && npm run terser",
     "terser": "npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.min.js -- ./dist/index.js",
     "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/",
     "fix": "npx prettier --write .",
@@ -32,12 +33,13 @@
   },
   "homepage": "https://github.com/tomayac/esm-potrace-wasm#readme",
   "devDependencies": {
-    "prettier": "^2.4.0",
-    "shx": "^0.3.3",
-    "terser": "^5.8.0",
     "eslint": "^7.32.0",
     "eslint-config-google": "^0.14.0",
-    "eslint-config-prettier": "^8.3.0"
+    "eslint-config-prettier": "^8.3.0",
+    "http-server": "^13.0.2",
+    "prettier": "^2.4.1",
+    "shx": "^0.3.3",
+    "terser": "^5.8.0"
   },
   "eslintConfig": {
     "parserOptions": {
