@@ -19,7 +19,8 @@ const potrace = async (imageBitmapSource, options = {}) => {
     a && 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
   /** @type {ImageData} */
   let imageData;
-  if (imageBitmapSource instanceof Blob) {
+  const constructorName = imageBitmapSource.constructor.name;
+  if (constructorName === 'Blob') {
     imageData = await (async () => {
       return new Promise((resolve) => {
         const url = URL.createObjectURL(imageBitmapSource);
@@ -40,11 +41,11 @@ const potrace = async (imageBitmapSource, options = {}) => {
       });
     })();
   } else if (
-    imageBitmapSource instanceof HTMLImageElement ||
-    imageBitmapSource instanceof SVGImageElement ||
-    imageBitmapSource instanceof HTMLVideoElement ||
-    imageBitmapSource instanceof HTMLCanvasElement ||
-    imageBitmapSource instanceof ImageBitmap
+    constructorName === 'HTMLImageElement' ||
+    constructorName === 'SVGImageElement' ||
+    constructorName === 'HTMLVideoElement' ||
+    constructorName === 'HTMLCanvasElement' ||
+    constructorName === 'ImageBitmap'
   ) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
