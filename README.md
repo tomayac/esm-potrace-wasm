@@ -38,7 +38,11 @@ const svg = await potrace(
 
 ## Demo
 
-ToDo.
+This library is used in <a href="https://svgco.de/">SVGcode</a>.
+
+<a href="https://svgco.de/">
+  <img src="https://github.com/tomayac/SVGcode/raw/main/public/screenshots/desktop.png" alt="SVGcode application screenshot" width="707" height="497" />
+</a>
 
 ## License
 
@@ -48,4 +52,5 @@ ToDo.
 
 Based on [@nturley](https://github.com/nturley)'s [fork](https://github.com/nturley/potrace-wasm) of
 [@IguteChung](https://github.com/IguteChung)'s initial [potrace-wasm](https://github.com/IguteChung/potrace-wasm).
-Unfortunately, the original author did not react on my Pull Request, so I forked.
+Unfortunately, the original author did not react on my
+[Pull Request](https://github.com/IguteChung/potrace-wasm/pull/1), so I forked.
