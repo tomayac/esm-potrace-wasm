@@ -36,7 +36,13 @@ const svg = await potrace(
 );
 ```
 
-## Demo
+## Developing
+
+Modify `src/potrace/` and run `npm run build` to update the ESM build in `dist/`.
+The emscripten build file is located at `./build.sh`. A simple demo
+that imports `dist/index.js` is available in `demo/` and can be started by running `npm start`.
+
+## Apps using this
 
 This library is used in <a href="https://svgco.de/">SVGcode</a>.
 
