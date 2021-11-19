@@ -1,6 +1,7 @@
-import potrace from '../dist/index.min.js';
+import potraceModule from '../dist/index.min.js';
 
 (async () => {
+  const potrace = (await potraceModule())._start;
   const pre = document.querySelector('pre');
   const div = document.querySelector('div');
 
