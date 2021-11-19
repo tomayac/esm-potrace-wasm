@@ -16,7 +16,7 @@
   "scripts": {
     "start": "npx http-server",
     "clean": "shx rm -rf ./dist",
-    "build": "npm run clean && shx mkdir ./dist && bash ./build.sh && shx echo \"export default potrace;\" >> ./dist/index.js && npm run terser",
+    "build": "npm run clean && shx mkdir ./dist && bash ./build.sh && npm run terser",
     "terser": "npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.min.js -- ./dist/index.js",
     "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/",
     "fix": "npx prettier --write .",
