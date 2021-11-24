@@ -52,7 +52,7 @@ This library is used in <a href="https://svgco.de/">SVGcode</a>.
 
 ## License
 
-⚠️ GPL-3.0, due to the original [Potrace license](http://potrace.sourceforge.net/#license).
+⚠️ GPL-v2.0, due to the original [Potrace license](http://potrace.sourceforge.net/#license).
 
 ## Acknowledgements
 

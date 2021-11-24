@@ -1,6 +1,6 @@
 {
   "name": "esm-potrace-wasm",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A modern ESM build of the Potrace library for use in the browser.",
   "main": "./dist/index.min.js",
   "browser": "./dist/index.min.js",
@@ -27,13 +27,13 @@
     "url": "git+https://github.com/tomayac/esm-potrace-wasm.git"
   },
   "author": "Thomas Steiner (tomac@google.com)",
-  "license": "GPL-3.0",
+  "license": "GPL-2.0",
   "bugs": {
     "url": "https://github.com/tomayac/esm-potrace-wasm/issues"
   },
   "homepage": "https://github.com/tomayac/esm-potrace-wasm#readme",
   "devDependencies": {
-    "eslint": "^8.2.0",
+    "eslint": "^8.3.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^8.3.0",
     "http-server": "^14.0.0",
