@@ -1,19 +1,37 @@
-import potrace from '../dist/index.js';
+import { potrace, ready } from '../dist/index.js';
 
 (async () => {
-  const pre = document.querySelector('pre');
-  const div = document.querySelector('div');
+  const pre1 = document.querySelector('#pre1');
+  const pre2 = document.querySelector('#pre2');
+  const div1 = document.querySelector('#div1');
+  const div2 = document.querySelector('#div2');
 
   const blob = await fetch('./snail.png').then((response) => response.blob());
-  let svg = await potrace(blob, {
+  await ready();
+
+  potrace(blob, {
     turdsize: 1,
     turnpolicy: 4,
     alphamax: 1,
     opticurve: 1,
     opttolerance: 0.2,
     pathonly: false,
+  }).then((svg) => {
+    div1.innerHTML = svg;
+    svg = svg.replaceAll('><', '>\n<');
+    pre1.textContent = svg + '\n\n(' + svg.length + ')';
   });
-  div.innerHTML = svg;
-  svg = svg.replaceAll('><', '>\n<');
-  pre.textContent = svg + '\n\n(' + svg.length + ')';
+
+  potrace(blob, {
+    turdsize: 2,
+    turnpolicy: 4,
+    alphamax: 1,
+    opticurve: 1,
+    opttolerance: 0.2,
+    pathonly: false,
+  }).then((svg) => {
+    div2.innerHTML = svg;
+    svg = svg.replaceAll('><', '>\n<');
+    pre2.textContent = svg + '\n\n(' + svg.length + ')';
+  });
 })();
