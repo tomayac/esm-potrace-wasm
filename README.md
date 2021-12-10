@@ -11,30 +11,34 @@ npm install --save esm-potrace-wasm
 ## Usage
 
 ```js
-import { potrace, ready } from 'esm-potrace-wasm';
+import { potrace, init } from 'esm-potrace-wasm';
 
-/**
- * The `imageBitmapSource` parameter is an `ImageBitmapSource`, that is any of:
- * - `HTMLImageElement`
- * - `SVGImageElement`
- * - `HTMLVideoElement`
- * - `HTMLCanvasElement`
- * - `ImageData`
- * - `ImageBitmap`
- * - `Blob`
- */
-await ready();
-const svg = await potrace(
-  imageBitmapSource,
-  (options = {
-    turdsize: 2,
-    turnpolicy: 4,
-    alphamax: 1,
-    opticurve: 1,
-    opttolerance: 0.2,
-    pathonly: false,
-  })
-);
+(async () => {
+  // Initialize the module once.
+  await init();
+
+  /**
+   * The `imageBitmapSource` parameter is an `ImageBitmapSource`, that is any of:
+   * - `HTMLImageElement`
+   * - `SVGImageElement`
+   * - `HTMLVideoElement`
+   * - `HTMLCanvasElement`
+   * - `ImageData`
+   * - `ImageBitmap`
+   * - `Blob`
+   */
+  const svg = await potrace(
+    imageBitmapSource,
+    (options = {
+      turdsize: 2,
+      turnpolicy: 4,
+      alphamax: 1,
+      opticurve: 1,
+      opttolerance: 0.2,
+      pathonly: false,
+    })
+  );
+})();
 ```
 
 ## Developing
