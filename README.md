@@ -11,7 +11,7 @@ npm install --save esm-potrace-wasm
 ## Usage
 
 ```js
-import potrace from 'esm-potrace-wasm';
+import { potrace, ready } from 'esm-potrace-wasm';
 
 /**
  * The `imageBitmapSource` parameter is an `ImageBitmapSource`, that is any of:
@@ -23,6 +23,7 @@ import potrace from 'esm-potrace-wasm';
  * - `ImageBitmap`
  * - `Blob`
  */
+await ready();
 const svg = await potrace(
   imageBitmapSource,
   (options = {
