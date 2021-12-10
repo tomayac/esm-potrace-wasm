@@ -1,4 +1,4 @@
-import { potrace, ready } from '../dist/index.js';
+import { potrace, init } from '../dist/index.js';
 
 (async () => {
   const pre1 = document.querySelector('#pre1');
@@ -7,7 +7,8 @@ import { potrace, ready } from '../dist/index.js';
   const div2 = document.querySelector('#div2');
 
   const blob = await fetch('./snail.png').then((response) => response.blob());
-  await ready();
+
+  await init();
 
   potrace(blob, {
     turdsize: 1,

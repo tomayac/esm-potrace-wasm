@@ -133,5 +133,6 @@ function wrapStart() {
 
 // export the functions in server env.
 if (typeof module !== 'undefined') {
-  module.exports = { potrace, ready };
+  const init = ready;
+  module.exports = { potrace, init };
 }
