@@ -10,7 +10,8 @@ import { potrace, init } from '../dist/index.js';
 
   await init();
 
-  potrace(blob, {
+  const start = Date.now();
+  await potrace(blob, {
     turdsize: 1,
     turnpolicy: 4,
     alphamax: 1,
@@ -22,7 +23,7 @@ import { potrace, init } from '../dist/index.js';
     svg = svg.replaceAll('><', '>\n<');
     pre1.textContent = svg + '\n\n(' + svg.length + ')';
   });
-
+console.log(Date.now() - start);
   potrace(blob, {
     turdsize: 2,
     turnpolicy: 4,

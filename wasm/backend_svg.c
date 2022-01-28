@@ -11,17 +11,7 @@
 #include "backend_svg.h"
 #include "lists.h"
 #include "auxiliary.h"
-
-#define UNIT 10
-
-struct transform_s
-{
-  double origx;
-  double origy;
-  double scalex;
-  double scaley;
-};
-typedef struct transform_s transform_t;
+#include "hexutils.h"
 
 /* ---------------------------------------------------------------------- */
 /* path-drawing auxiliary functions */
@@ -229,7 +219,7 @@ static int svg_path(FILE *fout, potrace_curve_t *curve, int abs, transform_t *tr
   return 0;
 }
 
-static void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transform_t *transform, int pathonly)
+void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transform_t *transform, int pathonly, uint8_t pixels[], int width, uint32_t color)
 {
   potrace_path_t *p, *q;
 
@@ -238,7 +228,37 @@ static void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transf
 
     if (!pathonly)
     {
-      column = fprintf(fout, "<path d=\"");
+      // int len = p->priv->len/2;
+      // point_t pixpoint = p->priv->pt[len];
+      // uint32_t r = 0;
+      // uint32_t g = 0;
+      // uint32_t b = 0;
+
+      // point_t pixpoint;
+      // int pixel_position;
+      // for (int i = 0; i < p->priv->len; ++i)
+      // {
+      //   pixpoint = p->priv->pt[i];
+      //   pixel_position = 4 * pixpoint.x * width + pixpoint.y;
+      //   r += pixels[pixel_position];
+      //   g += pixels[pixel_position + 1];
+      //   b += pixels[pixel_position + 2];
+      // }
+      // r /= p->priv->len;
+      // g /= p->priv->len;
+      // b /= p->priv->len;
+      // int pixel_position = 4 * pixpoint.x * width + pixpoint.y;
+      // uint8_t r = pixels[pixel_position];
+      // uint8_t g = pixels[pixel_position + 1];
+      // uint8_t b = pixels[pixel_position + 2];
+      uint8_t* pixel = (uint8_t*)&color;
+      uint8_t r = pixel[0];
+      uint8_t g = pixel[1];
+      uint8_t b = pixel[2];
+      uint8_t* hex_color = rgb_to_hex(r, g, b);
+
+      column = fprintf(fout, "<path fill=\"#%s\" stroke=\"none\" d=\"", hex_color);
+      free(hex_color);
     }
     newline = 1;
     lastop = 0;
@@ -261,7 +281,7 @@ static void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transf
 
     for (q = p->childlist; q; q = q->sibling)
     {
-      write_paths_transparent_rec(fout, q->childlist, transform, pathonly);
+      write_paths_transparent_rec(fout, q->childlist, transform, pathonly, pixels, width, color);
     }
   }
 }
@@ -270,7 +290,7 @@ static void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transf
 /* Backend. */
 
 /* public interface for SVG */
-int page_svg(FILE *fout, potrace_path_t *plist, imginfo_t *imginfo, svginfo_t *svginfo)
+int page_svg(FILE *fout, potrace_path_t *plist, imginfo_t *imginfo, svginfo_t *svginfo, uint8_t pixels[], int width, uint32_t color)
 {
   transform_t *transform = NULL;
   double bboxx = imginfo->trans.bb[0] + imginfo->lmar + imginfo->rmar;
@@ -316,7 +336,7 @@ int page_svg(FILE *fout, potrace_path_t *plist, imginfo_t *imginfo, svginfo_t *s
     transform = &t;
   }
 
-  write_paths_transparent_rec(fout, plist, transform, svginfo->pathonly);
+  write_paths_transparent_rec(fout, plist, transform, svginfo->pathonly, pixels, width, color);
 
   if (!svginfo->pathonly)
   {

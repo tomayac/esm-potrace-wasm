@@ -63,19 +63,8 @@ const potrace = async (imageBitmapSource, options = {}) => {
   }
   const start = wrapStart();
   await ready();
-  const data = new Array(Math.ceil(imageData.data.length / 32)).fill(0);
-  for (let i = 0; i < imageData.data.length; i += 4) {
-    const r = imageData.data[i];
-    const g = imageData.data[i + 1];
-    const b = imageData.data[i + 2];
-    const a = imageData.data[i + 3];
-    if (colorFilter(r, g, b, a)) {
-      const index = Math.floor(i / 4);
-      data[Math.floor(index / 8)] += 1 << index % 8;
-    }
-  }
   const result = start(
-    data,
+    imageData.data,
     imageData.width,
     imageData.height,
     true,
