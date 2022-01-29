@@ -12,11 +12,10 @@ const potrace = async (imageBitmapSource, options = {}) => {
       opticurve: 1,
       opttolerance: 0.2,
       pathonly: false,
+      extractColors: true,
     },
     options
   );
-  const colorFilter = (r, g, b, a) =>
-    a && 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
   /** @type {ImageData} */
   let imageData;
   const constructorName = imageBitmapSource.constructor.name;
@@ -69,6 +68,7 @@ const potrace = async (imageBitmapSource, options = {}) => {
     imageData.height,
     true,
     options.pathonly,
+    options.extractColors,
     options.turdsize,
     options.turnpolicy,
     options.alphamax,
@@ -112,6 +112,7 @@ function wrapStart() {
     'number', // height
     'number', // transform
     'number', // pathonly
+    'number', // extractColors
     'number', // turdsize
     'number', // turnpolicy
     'number', // alphamax

@@ -219,46 +219,33 @@ static int svg_path(FILE *fout, potrace_curve_t *curve, int abs, transform_t *tr
   return 0;
 }
 
-void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transform_t *transform, int pathonly, uint8_t pixels[], int width, uint32_t color)
+/* ---------------------------------------------------------------------- */
+/* Backend. */
+
+/* public interface for SVG */
+
+svgpath_group_transform_t init_group_transform_data(imginfo_t *imginfo)
+{
+  svgpath_group_transform_t tr;
+  
+  tr.bbox.bboxx = imginfo->trans.bb[0] + imginfo->lmar + imginfo->rmar;
+  tr.bbox.bboxy = imginfo->trans.bb[1] + imginfo->tmar + imginfo->bmar;
+  tr.transform.origx = imginfo->trans.orig[0] + imginfo->lmar;
+  tr.transform.origy = tr.bbox.bboxy - imginfo->trans.orig[1] - imginfo->bmar;
+  tr.transform.scalex = imginfo->trans.scalex / UNIT;
+  tr.transform.scaley = -imginfo->trans.scaley / UNIT;
+  return tr;
+}
+
+void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transform_t *transform, int pathonly)
 {
   potrace_path_t *p, *q;
 
   for (p = tree; p; p = p->sibling)
   {
-
     if (!pathonly)
     {
-      // int len = p->priv->len/2;
-      // point_t pixpoint = p->priv->pt[len];
-      // uint32_t r = 0;
-      // uint32_t g = 0;
-      // uint32_t b = 0;
-
-      // point_t pixpoint;
-      // int pixel_position;
-      // for (int i = 0; i < p->priv->len; ++i)
-      // {
-      //   pixpoint = p->priv->pt[i];
-      //   pixel_position = 4 * pixpoint.x * width + pixpoint.y;
-      //   r += pixels[pixel_position];
-      //   g += pixels[pixel_position + 1];
-      //   b += pixels[pixel_position + 2];
-      // }
-      // r /= p->priv->len;
-      // g /= p->priv->len;
-      // b /= p->priv->len;
-      // int pixel_position = 4 * pixpoint.x * width + pixpoint.y;
-      // uint8_t r = pixels[pixel_position];
-      // uint8_t g = pixels[pixel_position + 1];
-      // uint8_t b = pixels[pixel_position + 2];
-      uint8_t* pixel = (uint8_t*)&color;
-      uint8_t r = pixel[0];
-      uint8_t g = pixel[1];
-      uint8_t b = pixel[2];
-      uint8_t* hex_color = rgb_to_hex(r, g, b);
-
-      column = fprintf(fout, "<path fill=\"#%s\" stroke=\"none\" d=\"", hex_color);
-      free(hex_color);
+      column = fprintf(fout, "<path d=\"");
     }
     newline = 1;
     lastop = 0;
@@ -281,71 +268,77 @@ void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transform_t *
 
     for (q = p->childlist; q; q = q->sibling)
     {
-      write_paths_transparent_rec(fout, q->childlist, transform, pathonly, pixels, width, color);
+      write_paths_transparent_rec(fout, q->childlist, transform, pathonly);
     }
   }
 }
 
-/* ---------------------------------------------------------------------- */
-/* Backend. */
+void add_svg_header(FILE* fout, double bboxx, double bboxy)
+{
+  /* header */
+  fprintf(fout, "<?xml version=\"1.0\" standalone=\"no\"?>");
+  fprintf(fout, "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20010904//EN\"");
+  fprintf(fout, " \"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">");
 
-/* public interface for SVG */
-int page_svg(FILE *fout, potrace_path_t *plist, imginfo_t *imginfo, svginfo_t *svginfo, uint8_t pixels[], int width, uint32_t color)
+  /* set bounding box and namespace */
+  fprintf(fout, "<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"");
+  fprintf(fout, " width=\"%f\" height=\"%f\" viewBox=\"0 0 %f %f\"", bboxx, bboxy, bboxx, bboxy);
+  fprintf(fout, " preserveAspectRatio=\"xMidYMid meet\">");
+}
+
+void add_footer(FILE* fout)
+{
+  fprintf(fout, "</svg>");
+}
+
+void start_group(FILE *fout, transform_t *transform, uint8_t* hex_color)
+{
+  fprintf(fout, "<g transform=\"");
+  if (transform->origx != 0 || transform->origy != 0)
+  {
+    fprintf(fout, "translate(%f,%f) ", transform->origx, transform->origy);
+  }
+  fprintf(fout, "scale(%f,%f)\" ", transform->scalex, transform->scaley);
+  fprintf(fout, "fill=\"#%s\" stroke=\"none\">", hex_color);
+}
+
+void end_group(FILE* fout)
+{
+  fprintf(fout, "</g>");
+}
+
+int page_svg(FILE *fout, potrace_path_t *plist, imginfo_t *imginfo, svginfo_t *svginfo)
 {
   transform_t *transform = NULL;
-  double bboxx = imginfo->trans.bb[0] + imginfo->lmar + imginfo->rmar;
-  double bboxy = imginfo->trans.bb[1] + imginfo->tmar + imginfo->bmar;
-  double origx = imginfo->trans.orig[0] + imginfo->lmar;
-  double origy = bboxy - imginfo->trans.orig[1] - imginfo->bmar;
-  double scalex = imginfo->trans.scalex / UNIT;
-  double scaley = -imginfo->trans.scaley / UNIT;
-
-  if (!svginfo->pathonly)
-  {
-    /* header */
-    fprintf(fout, "<?xml version=\"1.0\" standalone=\"no\"?>");
-    fprintf(fout, "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20010904//EN\"");
-    fprintf(fout, " \"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">");
-
-    /* set bounding box and namespace */
-    fprintf(fout, "<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"");
-    fprintf(fout, " width=\"%f\" height=\"%f\" viewBox=\"0 0 %f %f\"",
-            bboxx, bboxy, bboxx, bboxy);
-    fprintf(fout, " preserveAspectRatio=\"xMidYMid meet\">");
-
-    /* use a "group" tag to establish coordinate system and style */
-    if (svginfo->transform)
-    {
-      fprintf(fout, "<g transform=\"");
-      if (origx != 0 || origy != 0)
-      {
-        fprintf(fout, "translate(%f,%f) ", origx, origy);
-      }
-      fprintf(fout, "scale(%f,%f)\" ", scalex, scaley);
-      fprintf(fout, "fill=\"#000000\" stroke=\"none\">");
-    }
-  }
+  auto tr = init_group_transform_data(imginfo);
+  
   if (!svginfo->transform)
   {
-    transform_t t = {
-        origx = origx,
-        origy = origy,
-        scalex = scalex,
-        scaley = scaley,
-    };
+    transform_t t = tr.transform;
     transform = &t;
   }
 
-  write_paths_transparent_rec(fout, plist, transform, svginfo->pathonly, pixels, width, color);
+  if (!svginfo->pathonly)
+  {
+    add_svg_header(fout, tr.bbox.bboxx, tr.bbox.bboxy);
+    /* use a "group" tag to establish coordinate system and style */
+    if (svginfo->transform)
+    {
+      char* c = "000000";
+      start_group(fout, &(tr.transform), (uint8_t*)c);
+    }
+  }
+
+  write_paths_transparent_rec(fout, plist, transform, svginfo->pathonly);
 
   if (!svginfo->pathonly)
   {
     /* write footer */
     if (svginfo->transform)
     {
-      fprintf(fout, "</g>");
+      end_group(fout);
     }
-    fprintf(fout, "</svg>");
+    add_footer(fout);
   }
   fflush(fout);
 

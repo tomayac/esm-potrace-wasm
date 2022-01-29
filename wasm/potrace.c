@@ -6,15 +6,31 @@
 #include "potracelib.h"
 #include "bitmap.h"
 #include "backend_svg.h"
+#include "hexutils.h"
+
+#undef abs
+
 #include <map>
 #include <vector>
+#include <algorithm>
+#include <memory>
+
+uint8_t get_quantized_value(uint8_t color, uint8_t level = 32)
+{
+    uint8_t q_c = color/level;
+	return level*q_c;
+}
+
+static bool color_filter(float r, float g, float b, float a) {
+    return a > 0 && (0.2126 * r + 0.7152 * g + 0.0722 * b < 128);
+}
 
 /* ---------------------------------------------------------------------- */
 /* calculations with bitmap dimensions, positioning etc */
 
 /* determine the dimensions of the output based on command line and
    image dimensions, and optionally, based on the actual image outline. */
-static void calc_dimensions(imginfo_t *imginfo, potrace_path_t *plist)
+static void calc_dimensions(imginfo_t *imginfo)
 {
     /* we take care of a special case: if one of the image dimensions is
      0, we change it to 1. Such an image is empty anyway, so there
@@ -53,33 +69,70 @@ static void calc_dimensions(imginfo_t *imginfo, potrace_path_t *plist)
     trans_scale_to_size(&imginfo->trans, imginfo->width, imginfo->height);
 }
 
-static bool colorFilter(float r, float g, float b, float a) {
-    return a > 1 && 0.2126 * r + 0.7152 * g + 0.0722 * b < 200;
-}
 
-
-const char *start(
-    uint8_t pixels[],
-    int width,
-    int height,
-    uint8_t transform,
-    uint8_t pathonly,
-    int turdsize,
-    int turnpolicy,
-    double alphamax,
-    int opticurve,
-    double opttolerace
+const char *start_monochromatic(
+    uint32_t* image,
+    imginfo_t* imginfo,
+    potrace_param_t* param,
+    svginfo_t* svginfo
     )
 {
-    // initialize the bitmap with given pixels.
-    //potrace_bitmap_t *bm = bm_new(width, height);
+    int width = imginfo->pixwidth;
+    int height = imginfo->pixheight;
+    potrace_bitmap_t *bm = bm_new(width, height);
+    for (int i = 0; i < width * height; i++)
+    {
+        // each uint8_t contains 8 pixels from rightmost bit.
+        int x = i % width;
+        int y = height - (i / width) - 1;
+        uint8_t* color = (uint8_t*)&(image[i]);
+        BM_UPUT(bm, x, y, color_filter(color[0], color[1], color[2], color[3] ? 1 : 0));
+    }
 
-    imginfo_t imginfo = {
-        .pixwidth = width,
-        .pixheight = height,
-    };
+    potrace_state_t *st = potrace_trace(param, bm);
+    if (!st || st->status != POTRACE_STATUS_OK)
+    {
+        fprintf(stderr, "trace error: %s\n", strerror(errno));
+        exit(2);
+    }
 
-    uint32_t* image = (uint32_t*)pixels;
+    bm_free(bm);
+
+    // start convert to svg.
+    char *buf;
+    size_t len;
+    FILE *stream = open_memstream(&buf, &len);
+    int r = page_svg(stream, st->plist, imginfo, svginfo);
+    if (r)
+    {
+        fprintf(stderr, "page_svg error: %s\n", strerror(errno));
+        exit(2);
+    }
+
+    // release resource.
+    fclose(stream);
+    potrace_state_free(st);
+
+    return buf;
+}
+
+const char *start_color(
+    uint32_t* image,
+    imginfo_t* imginfo,
+    potrace_param_t* param,
+    svginfo_t* svginfo
+    )
+{
+    int width = imginfo->pixwidth;
+    int height = imginfo->pixheight;
+    
+    auto tr = init_group_transform_data(imginfo);
+    transform_t* trans = nullptr;
+    if (!svginfo->transform)
+    {
+        transform_t t = tr.transform;
+        trans = &t;
+    }
 
     int index = 0;
     std::map<uint32_t, std::vector<std::pair<uint32_t, point_t>>> colors;
@@ -89,12 +142,12 @@ const char *start(
         int y = height - (i / width) - 1;
         uint32_t pixel = image[i];
         uint8_t* color = (uint8_t*)&pixel;
-        uint8_t r = color[0];
-        uint8_t g = color[1];
-        uint8_t b = color[2];
-        uint8_t a = color[3];
-        if (colorFilter(r, g, b, a) ? 1 : 0)
+        color[0] = get_quantized_value(color[0]);
+        color[1] = get_quantized_value(color[1]);
+        color[2] = get_quantized_value(color[2]);
+        if (color_filter(color[0], color[1], color[2], color[3]))
         {
+            color[3] = 255;
             point_t p;
             p.x = x;
             p.y = y;
@@ -103,84 +156,38 @@ const char *start(
             {
                 std::vector<std::pair<uint32_t, point_t>> points;
                 points.reserve(500);
-                points.push_back({i, p});
                 colors[pixel] = points;
             }
-            else
-            {
-                colors[pixel].push_back({i, p});
-            }
+            colors[pixel].push_back({i, p});
         }
-        //BM_UPUT(bm, x, y, colorFilter(r, g, b, a) ? 1 : 0);
     }
-
-    transform_t *tr = NULL;
-    double bboxx = imginfo.trans.bb[0] + imginfo.lmar + imginfo.rmar;
-    double bboxy = imginfo.trans.bb[1] + imginfo.tmar + imginfo.bmar;
-    double origx = imginfo.trans.orig[0] + imginfo.lmar;
-    double origy = bboxy - imginfo.trans.orig[1] - imginfo.bmar;
-    double scalex = imginfo.trans.scalex / UNIT;
-    double scaley = -imginfo.trans.scaley / UNIT;
 
     char *buf;
     size_t len;
     FILE *fout = open_memstream(&buf, &len);
-    svginfo_t svginfo = {
-        .transform = transform,
-        .pathonly = pathonly,
-    };
 
-    if (!svginfo.pathonly)
+    if (!svginfo->pathonly)
     {
-        /* header */
-        fprintf(fout, "<?xml version=\"1.0\" standalone=\"no\"?>");
-        fprintf(fout, "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20010904//EN\"");
-        fprintf(fout, " \"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">");
-
-        /* set bounding box and namespace */
-        fprintf(fout, "<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"");
-        fprintf(fout, " width=\"%d\" height=\"%d\" viewBox=\"0 0 %d %d\"",
-            width, height, width, height);
-        fprintf(fout, " preserveAspectRatio=\"xMidYMid meet\">");
-
-        /* use a "group" tag to establish coordinate system and style */
-        if (svginfo.transform)
-        {
-            fprintf(fout, "<g transform=\"");
-           
-            fprintf(fout, "translate(%f,%d) ", 0.0, height);
-            fprintf(fout, "scale(%f,%f)\" ", 0.1, -0.1);
-            fprintf(fout, "fill=\"#000000\" stroke=\"none\">");
-        }
-    }
-    if (!svginfo.transform)
-    {
-        transform_t t = {
-            origx = origx,
-            origy = origy,
-            scalex = scalex,
-            scaley = scaley,
-        };
-        tr = &t;
+        add_svg_header(fout, tr.bbox.bboxx, tr.bbox.bboxy);
     }
 
     for (auto& color : colors)
     {
+        if (svginfo->transform)
+        {
+            uint8_t* c = (uint8_t*)&(color.first);
+            auto hex_color = rgb_to_hex(c[0], c[1], c[2]);
+            start_group(fout, &(tr.transform), hex_color);
+            free(hex_color);
+        }
         potrace_bitmap_t *bm = bm_new(width, height);
         for (auto& c : color.second)
         {
             BM_UPUT(bm, c.second.x, c.second.y, 1);
         }
         // start the potrace algorithm.
-        potrace_param_t param = {
-            .turdsize = turdsize,
-            .turnpolicy = turnpolicy,
-            .alphamax = alphamax,
-            .opticurve = opticurve,
-            .opttolerance = opttolerace,
-        };
 
-        potrace_state_t *st = potrace_trace(&param, bm);
+        potrace_state_t *st = potrace_trace(param, bm);
         if (!st || st->status != POTRACE_STATUS_OK)
         {
             fprintf(stderr, "trace error: %s\n", strerror(errno));
@@ -188,39 +195,17 @@ const char *start(
         }
 
         // conver the trace to image information for svg backend generation.
-        bm_free(bm);
-
-        // calculte the dimension of image.
-        calc_dimensions(&imginfo, st->plist);
-
-        // start convert to svg.
-        // char *buf;
-        // size_t len;
-        // FILE *stream = open_memstream(&buf, &len);
-        // svginfo_t svginfo = {
-       //     .transform = transform,
-        //     .pathonly = pathonly,
-        // };
-        // int r = page_svg(stream, st->plist, &imginfo, &svginfo, pixels, width, color->first);
-        // if (r)
-        // {
-        //     fprintf(stderr, "page_svg error: %s\n", strerror(errno));
-        //     exit(2);
-        // }
-
-        write_paths_transparent_rec(fout, st->plist, tr, svginfo.pathonly, pixels, width, color.first);
-        potrace_state_free(st);
-
-
-    }
-    if (!svginfo.pathonly)
-    {
-        /* write footer */
-        if (svginfo.transform)
+        bm_free(bm);    
+        write_paths_transparent_rec(fout, st->plist, trans, svginfo->pathonly);
+        if (svginfo->transform)
         {
-            fprintf(fout, "</g>");
+            end_group(fout);
         }
-        fprintf(fout, "</svg>");
+        potrace_state_free(st);
+    }
+    if (!svginfo->pathonly)
+    {
+        add_footer(fout);
     }
     fflush(fout);
 
@@ -228,4 +213,47 @@ const char *start(
     fclose(fout);
     
     return buf;
+}
+
+const char *start(
+    uint8_t pixels[],
+    int width,
+    int height,
+    uint8_t transform,
+    uint8_t pathonly,
+    uint8_t extract_colors,
+    int turdsize,
+    int turnpolicy,
+    double alphamax,
+    int opticurve,
+    double opttolerace
+    )
+{
+    uint32_t* image = (uint32_t*)pixels;
+
+    imginfo_t imginfo = {
+        .pixwidth = width,
+        .pixheight = height,
+    };
+    
+    potrace_param_t param = {
+        .turdsize = turdsize,
+        .turnpolicy = turnpolicy,
+        .alphamax = alphamax,
+        .opticurve = opticurve,
+        .opttolerance = opttolerace,
+    };
+
+    calc_dimensions(&imginfo);
+
+    svginfo_t svginfo = {
+        .transform = transform,
+        .pathonly = pathonly,
+    };
+
+    if (!extract_colors) 
+    {
+        return start_monochromatic(image, &imginfo, &param, &svginfo);
+    }
+    return start_color(image, &imginfo, &param, &svginfo);
 }

@@ -10,20 +10,6 @@ import { potrace, init } from '../dist/index.js';
 
   await init();
 
-  const start = Date.now();
-  await potrace(blob, {
-    turdsize: 1,
-    turnpolicy: 4,
-    alphamax: 1,
-    opticurve: 1,
-    opttolerance: 0.2,
-    pathonly: false,
-  }).then((svg) => {
-    div1.innerHTML = svg;
-    svg = svg.replaceAll('><', '>\n<');
-    pre1.textContent = svg + '\n\n(' + svg.length + ')';
-  });
-console.log(Date.now() - start);
   potrace(blob, {
     turdsize: 2,
     turnpolicy: 4,
@@ -31,6 +17,21 @@ console.log(Date.now() - start);
     opticurve: 1,
     opttolerance: 0.2,
     pathonly: false,
+    extractColors: true,
+  }).then((svg) => {
+    div1.innerHTML = svg;
+    svg = svg.replaceAll('><', '>\n<');
+    pre1.textContent = svg + '\n\n(' + svg.length + ')';
+  });
+
+  potrace(blob, {
+    turdsize: 2,
+    turnpolicy: 4,
+    alphamax: 1,
+    opticurve: 1,
+    opttolerance: 0.2,
+    pathonly: false,
+    extractColors: false,
   }).then((svg) => {
     div2.innerHTML = svg;
     svg = svg.replaceAll('><', '>\n<');

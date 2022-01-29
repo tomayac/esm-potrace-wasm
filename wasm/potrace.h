@@ -59,6 +59,7 @@ extern "C" {
     int height,
     uint8_t transform,
     uint8_t pathonly,
+    uint8_t extract_colors,
     int turdsize,
     int turnpolicy,
     double alphamax,
