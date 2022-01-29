@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <memory>
 
-uint8_t get_quantized_value(uint8_t color, uint8_t level = 32)
+uint8_t get_quantized_value(uint8_t color, uint8_t level)
 {
     uint8_t q_c = color/level;
 	return level*q_c + level/2;
@@ -120,7 +120,8 @@ const char *start_color(
     uint32_t* image,
     imginfo_t* imginfo,
     potrace_param_t* param,
-    svginfo_t* svginfo
+    svginfo_t* svginfo,
+    uint8_t quantlevel
     )
 {
     int width = imginfo->pixwidth;
@@ -142,9 +143,9 @@ const char *start_color(
         int y = height - (i / width) - 1;
         uint32_t pixel = image[i];
         uint8_t* color = (uint8_t*)&pixel;
-        color[0] = get_quantized_value(color[0]);
-        color[1] = get_quantized_value(color[1]);
-        color[2] = get_quantized_value(color[2]);
+        color[0] = get_quantized_value(color[0], quantlevel);
+        color[1] = get_quantized_value(color[1], quantlevel);
+        color[2] = get_quantized_value(color[2], quantlevel);
         if (color[3] > 0)
         {
             color[3] = 255;
@@ -225,6 +226,7 @@ const char *start(
     uint8_t transform,
     uint8_t pathonly,
     uint8_t extract_colors,
+    uint8_t quantlevel,
     int turdsize,
     int turnpolicy,
     double alphamax,
@@ -258,5 +260,5 @@ const char *start(
     {
         return start_monochromatic(image, &imginfo, &param, &svginfo);
     }
-    return start_color(image, &imginfo, &param, &svginfo);
+    return start_color(image, &imginfo, &param, &svginfo, quantlevel);
 }

@@ -18,6 +18,7 @@ import { potrace, init } from '../dist/index.js';
     opttolerance: 0.2,
     pathonly: false,
     extractColors: true,
+    quantlevel: 1
   }).then((svg) => {
     div1.innerHTML = svg;
     svg = svg.replaceAll('><', '>\n<');
@@ -32,6 +33,7 @@ import { potrace, init } from '../dist/index.js';
     opttolerance: 0.2,
     pathonly: false,
     extractColors: false,
+    quantlevel: 1
   }).then((svg) => {
     div2.innerHTML = svg;
     svg = svg.replaceAll('><', '>\n<');
