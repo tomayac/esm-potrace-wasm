@@ -18,7 +18,7 @@
 uint8_t get_quantized_value(uint8_t color, uint8_t level = 32)
 {
     uint8_t q_c = color/level;
-	return level*q_c;
+	return level*q_c + level/2;
 }
 
 static bool color_filter(float r, float g, float b, float a) {
@@ -173,20 +173,11 @@ const char *start_color(
 
     for (auto& color : colors)
     {
-        if (svginfo->transform)
-        {
-            uint8_t* c = (uint8_t*)&(color.first);
-            auto hex_color = rgb_to_hex(c[0], c[1], c[2]);
-            start_group(fout, &(tr.transform), hex_color);
-            free(hex_color);
-        }
         potrace_bitmap_t *bm = bm_new(width, height);
         for (auto& c : color.second)
         {
             BM_UPUT(bm, c.second.x, c.second.y, 1);
         }
-        // start the potrace algorithm.
-
         potrace_state_t *st = potrace_trace(param, bm);
         if (!st || st->status != POTRACE_STATUS_OK)
         {
@@ -194,6 +185,18 @@ const char *start_color(
             exit(2);
         }
 
+        if (!st->plist)
+        {
+            continue;
+        }
+
+        if (svginfo->transform)
+        {
+            uint8_t* c = (uint8_t*)&(color.first);
+            auto hex_color = rgb_to_hex(c[0], c[1], c[2]);
+            start_group(fout, &(tr.transform), hex_color);
+            free(hex_color);
+        }
         // conver the trace to image information for svg backend generation.
         bm_free(bm);    
         write_paths_transparent_rec(fout, st->plist, trans, svginfo->pathonly);
