@@ -145,7 +145,7 @@ const char *start_color(
         color[0] = get_quantized_value(color[0]);
         color[1] = get_quantized_value(color[1]);
         color[2] = get_quantized_value(color[2]);
-        if (color_filter(color[0], color[1], color[2], color[3]))
+        if (color[3] > 0)
         {
             color[3] = 255;
             point_t p;
