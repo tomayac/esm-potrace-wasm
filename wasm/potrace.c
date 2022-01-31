@@ -18,7 +18,8 @@
 
 uint8_t get_quantized_value(uint8_t color, uint8_t level)
 {
-    return ((color / level) * level) + level/2;
+    float q_c = (color / level) * level + level/2;
+    return std::clamp(q_c, 0.0f, 255.0f);
 }
 
 static bool color_filter(float r, float g, float b, float a) {
