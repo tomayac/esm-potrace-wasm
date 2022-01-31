@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "potrace.h"
 #include "potracelib.h"
@@ -17,8 +18,7 @@
 
 uint8_t get_quantized_value(uint8_t color, uint8_t level)
 {
-    uint8_t q_c = color/level;
-	return level*q_c + level/2;
+    return ((color / level) * level) + level/2;
 }
 
 static bool color_filter(float r, float g, float b, float a) {
@@ -260,5 +260,6 @@ const char *start(
     {
         return start_monochromatic(image, &imginfo, &param, &svginfo);
     }
-    return start_color(image, &imginfo, &param, &svginfo, quantlevel);
+    int levels = ceil(256.0f / (quantlevel + 1));
+    return start_color(image, &imginfo, &param, &svginfo, levels);
 }
