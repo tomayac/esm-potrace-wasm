@@ -9,7 +9,6 @@ import { potrace, init } from '../dist/index.js';
   const blob = await fetch('./snail.png').then((response) => response.blob());
 
   await init();
-  
   potrace(blob, {
     turdsize: 2,
     turnpolicy: 4,
@@ -18,7 +17,8 @@ import { potrace, init } from '../dist/index.js';
     opttolerance: 0.2,
     pathonly: false,
     extractColors: true,
-    quantlevel: 5
+    posterizeLevel: 6,
+    posterizationAlgorithm: 0, // 0 - simple, 1 - interpolation
   }).then((svg) => {
     div1.innerHTML = svg;
     svg = svg.replaceAll('><', '>\n<');
@@ -33,7 +33,8 @@ import { potrace, init } from '../dist/index.js';
     opttolerance: 0.2,
     pathonly: false,
     extractColors: false,
-    quantlevel: 1 // Does not matter
+    quantlevel: 1, // Does not matter
+    posterizationAlgorithm: 0,
   }).then((svg) => {
     div2.innerHTML = svg;
     svg = svg.replaceAll('><', '>\n<');

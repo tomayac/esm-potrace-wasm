@@ -16,14 +16,38 @@
 #include <algorithm>
 #include <memory>
 
-uint8_t get_quantized_value(uint8_t color, uint8_t level)
+static uint8_t get_quantized_value(uint8_t color, std::vector<float>& levels)
+{
+    if (color == 255 || color == 0)
+        return color;
+    float c = (float)color / 255.0f;
+    auto l = *(std::lower_bound(std::begin(levels), std::end(levels), c));
+    auto r = l + levels[1];
+    auto val = std::abs(l - c) > std::abs(r - c) ? r : l;
+
+    return 255.0f * val;
+}
+
+static uint8_t get_quantized_value_simple(uint8_t color, uint8_t level)
 {
     float q_c = (color / level) * level + level/2;
     return std::clamp(q_c, 0.0f, 255.0f);
 }
 
-static bool color_filter(float r, float g, float b, float a) {
+static bool color_filter(float r, float g, float b, float a)
+{
     return a > 0 && (0.2126 * r + 0.7152 * g + 0.0722 * b < 128);
+}
+
+static std::vector<float> get_ranges(uint8_t levels)
+{
+    std::vector<float> table_values(levels + 1);
+    float base = 1.0f / levels;
+    for (uint8_t i = 0; i <= levels; ++i)
+    {
+        table_values[i] = base * i;
+    }
+    return std::move(table_values);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -122,7 +146,8 @@ const char *start_color(
     imginfo_t* imginfo,
     potrace_param_t* param,
     svginfo_t* svginfo,
-    uint8_t quantlevel
+    uint8_t quantlevel,
+    uint8_t posterization_algorithm
     )
 {
     int width = imginfo->pixwidth;
@@ -138,15 +163,29 @@ const char *start_color(
 
     int index = 0;
     std::map<uint32_t, std::vector<std::pair<uint32_t, point_t>>> colors;
+    
+
+    std::function<uint8_t(uint8_t)> map_value;
+    int invlevel = ceil(256.0f / (quantlevel + 1));
+    auto levels = get_ranges(quantlevel);
+    if (posterization_algorithm == 0)
+    {
+        map_value = [&](uint8_t c) { return get_quantized_value_simple(c, invlevel); };
+    }
+    else
+    {
+        map_value = [&](uint8_t c) { return get_quantized_value(c, levels); };
+    }
+
     for (int i = 0; i < width * height; i++)
     {
         int x = i % width;
         int y = height - (i / width) - 1;
         uint32_t pixel = image[i];
         uint8_t* color = (uint8_t*)&pixel;
-        color[0] = get_quantized_value(color[0], quantlevel);
-        color[1] = get_quantized_value(color[1], quantlevel);
-        color[2] = get_quantized_value(color[2], quantlevel);
+        color[0] = map_value(color[0]);
+        color[1] = map_value(color[1]);
+        color[2] = map_value(color[2]);
         if (color[3] > 0)
         {
             color[3] = 255;
@@ -228,6 +267,7 @@ const char *start(
     uint8_t pathonly,
     uint8_t extract_colors,
     uint8_t quantlevel,
+    uint8_t posterization_algorithm,
     int turdsize,
     int turnpolicy,
     double alphamax,
@@ -261,6 +301,5 @@ const char *start(
     {
         return start_monochromatic(image, &imginfo, &param, &svginfo);
     }
-    int levels = ceil(256.0f / (quantlevel + 1));
-    return start_color(image, &imginfo, &param, &svginfo, levels);
+    return start_color(image, &imginfo, &param, &svginfo, quantlevel, posterization_algorithm);
 }

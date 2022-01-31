@@ -61,6 +61,7 @@ extern "C" {
     uint8_t pathonly,
     uint8_t extract_colors,
     uint8_t quantlevel,
+    uint8_t posterization_algorithm,
     int turdsize,
     int turnpolicy,
     double alphamax,

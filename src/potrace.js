@@ -13,7 +13,8 @@ const potrace = async (imageBitmapSource, options = {}) => {
       opttolerance: 0.2,
       pathonly: false,
       extractColors: true,
-      quantlevel: 1
+      posterizeLevel: 1,
+      simpleAlgorithm: true
     },
     options
   );
@@ -70,7 +71,8 @@ const potrace = async (imageBitmapSource, options = {}) => {
     true,
     options.pathonly,
     options.extractColors,
-    options.quantlevel,
+    options.posterizeLevel,
+    options.posterizationAlgorithm,
     options.turdsize,
     options.turnpolicy,
     options.alphamax,
@@ -116,6 +118,7 @@ function wrapStart() {
     'number', // pathonly
     'number', // extractColors
     'number', // quantlevel
+    'number', // posterizationAlgorithm
     'number', // turdsize
     'number', // turnpolicy
     'number', // alphamax
