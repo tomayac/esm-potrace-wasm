@@ -36,6 +36,9 @@ import { potrace, init } from 'esm-potrace-wasm';
       opticurve: 1,
       opttolerance: 0.2,
       pathonly: false,
+      extractcolors: true,
+      posterizelevel: 2, // [1, 255]
+      posterizationalgorithm: 0, // 0: simple, 1: interpolation
     })
   );
 })();
@@ -44,7 +47,7 @@ import { potrace, init } from 'esm-potrace-wasm';
 ## Developing
 
 Modify `src/potrace/` and run `npm run build` to update the ESM build in `dist/`.
-The emscripten build file is located at `./build.sh`. A simple demo
+The emscripten build file is located at `./build.sh` (or `build.ps1` for Win32) respectively. A simple demo
 that imports `dist/index.js` is available in `demo/` and can be started by running `npm start`.
 
 ## Apps using this

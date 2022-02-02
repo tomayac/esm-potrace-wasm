@@ -53,7 +53,7 @@ import { potrace, init } from '../dist/index.js';
     opttolerance: 0.2,
     pathonly: false,
     extractcolors: true,
-    posterizelevel: 3,
+    posterizelevel: 5,
     posterizationalgorithm: 1, // 0: simple, 1: interpolation
   }).then((svg) => {
     div3.innerHTML = svg;
@@ -74,5 +74,4 @@ import { potrace, init } from '../dist/index.js';
     svg = svg.replaceAll('><', '>\n<');
     pre4.textContent = svg + '\n\n(' + svg.length + ')';
   });
-
 })();

@@ -13,8 +13,8 @@ const potrace = async (imageBitmapSource, options = {}) => {
       opttolerance: 0.2,
       pathonly: false,
       extractcolors: true,
-      posterizelevel: 1,
-      posterizationalgorithm: true
+      posterizelevel: 5,
+      posterizationalgorithm: 1,
     },
     options
   );
@@ -24,7 +24,9 @@ const potrace = async (imageBitmapSource, options = {}) => {
   if (constructorName === 'Blob') {
     imageData = await (async () => {
       return new Promise((resolve) => {
-        const url = URL.createObjectURL(imageBitmapSource);
+        const url = URL.createObjectURL(
+          /** @type {Blob} */ (imageBitmapSource)
+        );
         const image = new Image();
         image.onload = () => {
           const canvas = document.createElement('canvas');
@@ -53,14 +55,16 @@ const potrace = async (imageBitmapSource, options = {}) => {
     if (!ctx) {
       throw new Error('Canvas is not supported.');
     }
-    const canvasImageSource = imageBitmapSource;
+    const canvasImageSource = /** @type {CanvasImageSource} */ (
+      imageBitmapSource
+    );
     canvas.width = Number(canvasImageSource.width);
     canvas.height = Number(canvasImageSource.height);
     ctx.drawImage(canvasImageSource, 0, 0, canvas.width, canvas.height);
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     document.body.append(canvas);
   } else {
-    imageData = imageBitmapSource;
+    imageData = /** @type {ImageData} */ (imageBitmapSource);
   }
   const start = wrapStart();
   await ready();

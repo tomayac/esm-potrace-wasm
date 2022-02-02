@@ -1,6 +1,6 @@
 {
   "name": "esm-potrace-wasm",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A modern ESM build of the Potrace library for use in the browser.",
   "main": "./dist/index.min.js",
   "browser": "./dist/index.min.js",
@@ -37,13 +37,13 @@
   },
   "homepage": "https://github.com/tomayac/esm-potrace-wasm#readme",
   "devDependencies": {
-    "eslint": "^8.4.1",
+    "eslint": "^8.8.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^8.3.0",
-    "http-server": "^14.0.0",
+    "http-server": "^14.1.0",
     "prettier": "^2.5.1",
     "run-script-os": "^1.1.6",
-    "shx": "^0.3.3",
+    "shx": "^0.3.4",
     "terser": "^5.10.0"
   },
   "eslintConfig": {
