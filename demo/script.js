@@ -16,15 +16,15 @@ import { potrace, init } from '../dist/index.js';
     opticurve: 1,
     opttolerance: 0.2,
     pathonly: false,
-    extractColors: true,
-    posterizeLevel: 6,
-    posterizationAlgorithm: 0, // 0 - simple, 1 - interpolation
+    extractcolors: true,
+    posterizelevel: 5,
+    posterizationalgorithm: 1, // 0 - simple, 1 - interpolation
   }).then((svg) => {
     div1.innerHTML = svg;
     svg = svg.replaceAll('><', '>\n<');
     pre1.textContent = svg + '\n\n(' + svg.length + ')';
   });
-
+  
   potrace(blob, {
     turdsize: 2,
     turnpolicy: 4,
@@ -32,9 +32,7 @@ import { potrace, init } from '../dist/index.js';
     opticurve: 1,
     opttolerance: 0.2,
     pathonly: false,
-    extractColors: false,
-    quantlevel: 1, // Does not matter
-    posterizationAlgorithm: 0,
+    extractcolors: false,
   }).then((svg) => {
     div2.innerHTML = svg;
     svg = svg.replaceAll('><', '>\n<');

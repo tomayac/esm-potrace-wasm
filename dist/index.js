@@ -2019,9 +2019,9 @@ const potrace = async (imageBitmapSource, options = {}) => {
       opticurve: 1,
       opttolerance: 0.2,
       pathonly: false,
-      extractColors: true,
-      posterizeLevel: 1,
-      simpleAlgorithm: true
+      extractcolors: true,
+      posterizelevel: 1,
+      posterizationalgorithm: true
     },
     options
   );
@@ -2077,9 +2077,9 @@ const potrace = async (imageBitmapSource, options = {}) => {
     imageData.height,
     true,
     options.pathonly,
-    options.extractColors,
-    options.posterizeLevel,
-    options.posterizationAlgorithm,
+    options.extractcolors,
+    options.posterizelevel,
+    options.posterizationalgorithm,
     options.turdsize,
     options.turnpolicy,
     options.alphamax,
