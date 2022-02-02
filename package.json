@@ -20,8 +20,8 @@
     "clean:default": "shx rm -rf ./dist",
     "build": "run-script-os",
     "build:win32": "npm run clean && mkdir dist && @powershell -NoProfile -ExecutionPolicy Unrestricted -Command ./build.ps1 && npm run terser",
-    "build:default": "npm run clean && shx mkdir ./dist && bash ./build.sh && shx echo \"export { potrace, ready as init };\" >> ./dist/index.js && npm run terser",
-    "terser": "npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.min.js -- ./dist/index.js",
+    "build:default": "npm run clean && shx mkdir ./dist && bash ./build.sh && npm run terser",
+    "terser": "shx echo \"export { potrace, ready as init };\" >> ./dist/temp.js && npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.min.js -- ./dist/temp.js && shx rm ./dist/temp.js",
     "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/",
     "fix": "npx prettier --write .",
     "prepare": "npm run lint && npm run fix && npm run build"
