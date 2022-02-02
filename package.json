@@ -10,6 +10,7 @@
   },
   "module": "./dist/index.min.js",
   "type": "module",
+  "types": "./src/index.d.ts",
   "files": [
     "dist/"
   ],
@@ -21,7 +22,7 @@
     "build": "run-script-os",
     "build:win32": "npm run clean && mkdir dist && @powershell -NoProfile -ExecutionPolicy Unrestricted -Command ./build.ps1 && npm run terser",
     "build:default": "npm run clean && shx mkdir ./dist && bash ./build.sh && npm run terser",
-    "terser": "shx echo \"export { potrace, ready as init };\" >> ./dist/temp.js && npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.min.js -- ./dist/temp.js && shx rm ./dist/temp.js",
+    "terser": "shx echo \"export { potrace, ready as init };\" >> ./dist/temp.js && npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.js -- ./dist/temp.js && shx rm ./dist/temp.js && shx cp ./src/index.d.ts ./dist/index.d.ts",
     "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/",
     "fix": "npx prettier --write .",
     "prepare": "npm run lint && npm run fix && npm run build"

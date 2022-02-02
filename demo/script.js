@@ -1,4 +1,4 @@
-import { potrace, init } from '../dist/index.min.js';
+import { potrace, init } from '../dist/index.js';
 
 (async () => {
   const pre1 = document.querySelector('#pre1');
