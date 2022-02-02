@@ -11,17 +11,7 @@
 #include "backend_svg.h"
 #include "lists.h"
 #include "auxiliary.h"
-
-#define UNIT 10
-
-struct transform_s
-{
-  double origx;
-  double origy;
-  double scalex;
-  double scaley;
-};
-typedef struct transform_s transform_t;
+#include "hexutils.h"
 
 /* ---------------------------------------------------------------------- */
 /* path-drawing auxiliary functions */
@@ -229,13 +219,30 @@ static int svg_path(FILE *fout, potrace_curve_t *curve, int abs, transform_t *tr
   return 0;
 }
 
-static void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transform_t *transform, int pathonly)
+/* ---------------------------------------------------------------------- */
+/* Backend. */
+
+/* public interface for SVG */
+
+svgpath_group_transform_t init_group_transform_data(imginfo_t *imginfo)
+{
+  svgpath_group_transform_t tr;
+  
+  tr.bbox.bboxx = imginfo->trans.bb[0] + imginfo->lmar + imginfo->rmar;
+  tr.bbox.bboxy = imginfo->trans.bb[1] + imginfo->tmar + imginfo->bmar;
+  tr.transform.origx = imginfo->trans.orig[0] + imginfo->lmar;
+  tr.transform.origy = tr.bbox.bboxy - imginfo->trans.orig[1] - imginfo->bmar;
+  tr.transform.scalex = imginfo->trans.scalex / UNIT;
+  tr.transform.scaley = -imginfo->trans.scaley / UNIT;
+  return tr;
+}
+
+void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transform_t *transform, int pathonly)
 {
   potrace_path_t *p, *q;
 
   for (p = tree; p; p = p->sibling)
   {
-
     if (!pathonly)
     {
       column = fprintf(fout, "<path d=\"");
@@ -266,54 +273,60 @@ static void write_paths_transparent_rec(FILE *fout, potrace_path_t *tree, transf
   }
 }
 
-/* ---------------------------------------------------------------------- */
-/* Backend. */
+void add_svg_header(FILE* fout, double bboxx, double bboxy)
+{
+  /* header */
+  fprintf(fout, "<?xml version=\"1.0\" standalone=\"no\"?>");
+  fprintf(fout, "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20010904//EN\"");
+  fprintf(fout, " \"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">");
 
-/* public interface for SVG */
+  /* set bounding box and namespace */
+  fprintf(fout, "<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"");
+  fprintf(fout, " width=\"%f\" height=\"%f\" viewBox=\"0 0 %f %f\"", bboxx, bboxy, bboxx, bboxy);
+  fprintf(fout, " preserveAspectRatio=\"xMidYMid meet\">");
+}
+
+void add_footer(FILE* fout)
+{
+  fprintf(fout, "</svg>");
+}
+
+void start_group(FILE *fout, transform_t *transform, uint8_t* hex_color)
+{
+  fprintf(fout, "<g transform=\"");
+  if (transform->origx != 0 || transform->origy != 0)
+  {
+    fprintf(fout, "translate(%f,%f) ", transform->origx, transform->origy);
+  }
+  fprintf(fout, "scale(%f,%f)\" ", transform->scalex, transform->scaley);
+  fprintf(fout, "fill=\"#%s\" stroke=\"none\">", hex_color);
+}
+
+void end_group(FILE* fout)
+{
+  fprintf(fout, "</g>");
+}
+
 int page_svg(FILE *fout, potrace_path_t *plist, imginfo_t *imginfo, svginfo_t *svginfo)
 {
   transform_t *transform = NULL;
-  double bboxx = imginfo->trans.bb[0] + imginfo->lmar + imginfo->rmar;
-  double bboxy = imginfo->trans.bb[1] + imginfo->tmar + imginfo->bmar;
-  double origx = imginfo->trans.orig[0] + imginfo->lmar;
-  double origy = bboxy - imginfo->trans.orig[1] - imginfo->bmar;
-  double scalex = imginfo->trans.scalex / UNIT;
-  double scaley = -imginfo->trans.scaley / UNIT;
+  auto tr = init_group_transform_data(imginfo);
+  
+  if (!svginfo->transform)
+  {
+    transform_t t = tr.transform;
+    transform = &t;
+  }
 
   if (!svginfo->pathonly)
   {
-    /* header */
-    fprintf(fout, "<?xml version=\"1.0\" standalone=\"no\"?>");
-    fprintf(fout, "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20010904//EN\"");
-    fprintf(fout, " \"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">");
-
-    /* set bounding box and namespace */
-    fprintf(fout, "<svg version=\"1.0\" xmlns=\"http://www.w3.org/2000/svg\"");
-    fprintf(fout, " width=\"%f\" height=\"%f\" viewBox=\"0 0 %f %f\"",
-            bboxx, bboxy, bboxx, bboxy);
-    fprintf(fout, " preserveAspectRatio=\"xMidYMid meet\">");
-
+    add_svg_header(fout, tr.bbox.bboxx, tr.bbox.bboxy);
     /* use a "group" tag to establish coordinate system and style */
     if (svginfo->transform)
     {
-      fprintf(fout, "<g transform=\"");
-      if (origx != 0 || origy != 0)
-      {
-        fprintf(fout, "translate(%f,%f) ", origx, origy);
-      }
-      fprintf(fout, "scale(%f,%f)\" ", scalex, scaley);
-      fprintf(fout, "fill=\"#000000\" stroke=\"none\">");
+      char* c = "000000";
+      start_group(fout, &(tr.transform), (uint8_t*)c);
     }
-  }
-  if (!svginfo->transform)
-  {
-    transform_t t = {
-        origx = origx,
-        origy = origy,
-        scalex = scalex,
-        scaley = scaley,
-    };
-    transform = &t;
   }
 
   write_paths_transparent_rec(fout, plist, transform, svginfo->pathonly);
@@ -323,9 +336,9 @@ int page_svg(FILE *fout, potrace_path_t *plist, imginfo_t *imginfo, svginfo_t *s
     /* write footer */
     if (svginfo->transform)
     {
-      fprintf(fout, "</g>");
+      end_group(fout);
     }
-    fprintf(fout, "</svg>");
+    add_footer(fout);
   }
   fflush(fout);
 

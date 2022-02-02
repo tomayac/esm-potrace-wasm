@@ -12,11 +12,12 @@ const potrace = async (imageBitmapSource, options = {}) => {
       opticurve: 1,
       opttolerance: 0.2,
       pathonly: false,
+      extractcolors: true,
+      posterizelevel: 1,
+      posterizationalgorithm: true
     },
     options
   );
-  const colorFilter = (r, g, b, a) =>
-    a && 0.2126 * r + 0.7152 * g + 0.0722 * b < 128;
   /** @type {ImageData} */
   let imageData;
   const constructorName = imageBitmapSource.constructor.name;
@@ -63,23 +64,15 @@ const potrace = async (imageBitmapSource, options = {}) => {
   }
   const start = wrapStart();
   await ready();
-  const data = new Array(Math.ceil(imageData.data.length / 32)).fill(0);
-  for (let i = 0; i < imageData.data.length; i += 4) {
-    const r = imageData.data[i];
-    const g = imageData.data[i + 1];
-    const b = imageData.data[i + 2];
-    const a = imageData.data[i + 3];
-    if (colorFilter(r, g, b, a)) {
-      const index = Math.floor(i / 4);
-      data[Math.floor(index / 8)] += 1 << index % 8;
-    }
-  }
   const result = start(
-    data,
+    imageData.data,
     imageData.width,
     imageData.height,
     true,
     options.pathonly,
+    options.extractcolors,
+    options.posterizelevel,
+    options.posterizationalgorithm,
     options.turdsize,
     options.turnpolicy,
     options.alphamax,
@@ -123,6 +116,9 @@ function wrapStart() {
     'number', // height
     'number', // transform
     'number', // pathonly
+    'number', // extractColors
+    'number', // quantlevel
+    'number', // posterizationAlgorithm
     'number', // turdsize
     'number', // turnpolicy
     'number', // alphamax

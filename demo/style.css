@@ -35,3 +35,8 @@ video {
   height: auto;
   max-width: 100%;
 }
+
+pre {
+  max-height: 10rem;
+  overflow: scroll;
+}

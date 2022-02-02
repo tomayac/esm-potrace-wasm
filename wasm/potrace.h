@@ -4,6 +4,7 @@
 #include "potracelib.h"
 #include "auxiliary.h"
 #include "trans.h"
+#include <emscripten.h>
 
 /* structure to hold a dimensioned value */
 struct dim_s
@@ -17,6 +18,7 @@ typedef struct dim_s dim_t;
 #define DIM_CM (72 / 2.54)
 #define DIM_MM (72 / 25.4)
 #define DIM_PT (1)
+#define UNIT 10
 
 /* set some configurable defaults */
 
@@ -49,5 +51,22 @@ struct imginfo_s
   trans_t trans;                 /* specify relative position of a tilted rectangle */
 };
 typedef struct imginfo_s imginfo_t;
-
+extern "C" {
+  EMSCRIPTEN_KEEPALIVE
+  const char *start(
+    uint8_t pixels[],
+    int width,
+    int height,
+    uint8_t transform,
+    uint8_t pathonly,
+    uint8_t extract_colors,
+    uint8_t quantlevel,
+    uint8_t posterization_algorithm,
+    int turdsize,
+    int turnpolicy,
+    double alphamax,
+    int opticurve,
+    double opttolerace
+    );
+  }
 #endif /* POTRACE_H */

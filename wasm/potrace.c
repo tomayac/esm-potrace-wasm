@@ -1,18 +1,61 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "potrace.h"
 #include "potracelib.h"
 #include "bitmap.h"
 #include "backend_svg.h"
+#include "hexutils.h"
+
+#undef abs
+
+#include <map>
+#include <vector>
+#include <algorithm>
+#include <memory>
+
+static uint8_t get_quantized_value(uint8_t color, std::vector<float>& levels)
+{
+    if (color == 255 || color == 0)
+        return color;
+    float c = (float)color / 255.0f;
+    auto l = *(std::lower_bound(std::begin(levels), std::end(levels), c));
+    auto r = l + levels[1];
+    auto val = std::abs(l - c) > std::abs(r - c) ? r : l;
+
+    return 255.0f * val;
+}
+
+static uint8_t get_quantized_value_simple(uint8_t color, uint8_t level)
+{
+    float q_c = (color / level) * level + level/2;
+    return std::clamp(q_c, 0.0f, 255.0f);
+}
+
+static bool color_filter(float r, float g, float b, float a)
+{
+    return a > 0 && (0.2126 * r + 0.7152 * g + 0.0722 * b < 128);
+}
+
+static std::vector<float> get_ranges(uint8_t levels)
+{
+    std::vector<float> table_values(levels + 1);
+    float base = 1.0f / levels;
+    for (uint8_t i = 0; i <= levels; ++i)
+    {
+        table_values[i] = base * i;
+    }
+    return std::move(table_values);
+}
 
 /* ---------------------------------------------------------------------- */
 /* calculations with bitmap dimensions, positioning etc */
 
 /* determine the dimensions of the output based on command line and
    image dimensions, and optionally, based on the actual image outline. */
-static void calc_dimensions(imginfo_t *imginfo, potrace_path_t *plist)
+static void calc_dimensions(imginfo_t *imginfo)
 {
     /* we take care of a special case: if one of the image dimensions is
      0, we change it to 1. Such an image is empty anyway, so there
@@ -51,65 +94,40 @@ static void calc_dimensions(imginfo_t *imginfo, potrace_path_t *plist)
     trans_scale_to_size(&imginfo->trans, imginfo->width, imginfo->height);
 }
 
-const char *start(
-    uint8_t pixels[],
-    int width,
-    int height,
-    uint8_t transform,
-    uint8_t pathonly,
-    int turdsize,
-    int turnpolicy,
-    double alphamax,
-    int opticurve,
-    double opttolerace
+
+const char *start_monochromatic(
+    uint32_t* image,
+    imginfo_t* imginfo,
+    potrace_param_t* param,
+    svginfo_t* svginfo
     )
 {
-    // initialize the bitmap with given pixels.
+    int width = imginfo->pixwidth;
+    int height = imginfo->pixheight;
     potrace_bitmap_t *bm = bm_new(width, height);
     for (int i = 0; i < width * height; i++)
     {
         // each uint8_t contains 8 pixels from rightmost bit.
         int x = i % width;
         int y = height - (i / width) - 1;
-        uint8_t pixel = pixels[i / 8];
-        BM_UPUT(bm, x, y, pixel & (1 << (i % 8)));
+        uint8_t* color = (uint8_t*)&(image[i]);
+        BM_UPUT(bm, x, y, color_filter(color[0], color[1], color[2], color[3] ? 1 : 0));
     }
 
-    // start the potrace algorithm.
-    potrace_param_t param = {
-        .turdsize = turdsize,
-        .turnpolicy = turnpolicy,
-        .alphamax = alphamax,
-        .opticurve = opticurve,
-        .opttolerance = opttolerace,
-    };
-
-    potrace_state_t *st = potrace_trace(&param, bm);
+    potrace_state_t *st = potrace_trace(param, bm);
     if (!st || st->status != POTRACE_STATUS_OK)
     {
         fprintf(stderr, "trace error: %s\n", strerror(errno));
         exit(2);
     }
 
-    // conver the trace to image information for svg backend generation.
-    imginfo_t imginfo = {
-        .pixwidth = bm->w,
-        .pixheight = bm->h,
-    };
     bm_free(bm);
-
-    // calculte the dimension of image.
-    calc_dimensions(&imginfo, st->plist);
 
     // start convert to svg.
     char *buf;
     size_t len;
     FILE *stream = open_memstream(&buf, &len);
-    svginfo_t svginfo = {
-        .transform = transform,
-        .pathonly = pathonly,
-    };
-    int r = page_svg(stream, st->plist, &imginfo, &svginfo);
+    int r = page_svg(stream, st->plist, imginfo, svginfo);
     if (r)
     {
         fprintf(stderr, "page_svg error: %s\n", strerror(errno));
@@ -121,4 +139,167 @@ const char *start(
     potrace_state_free(st);
 
     return buf;
+}
+
+const char *start_color(
+    uint32_t* image,
+    imginfo_t* imginfo,
+    potrace_param_t* param,
+    svginfo_t* svginfo,
+    uint8_t quantlevel,
+    uint8_t posterization_algorithm
+    )
+{
+    int width = imginfo->pixwidth;
+    int height = imginfo->pixheight;
+    
+    auto tr = init_group_transform_data(imginfo);
+    transform_t* trans = nullptr;
+    if (!svginfo->transform)
+    {
+        transform_t t = tr.transform;
+        trans = &t;
+    }
+
+    int index = 0;
+    std::map<uint32_t, std::vector<std::pair<uint32_t, point_t>>> colors;
+    
+
+    std::function<uint8_t(uint8_t)> map_value;
+    int invlevel = ceil(256.0f / (quantlevel + 1));
+    auto levels = get_ranges(quantlevel);
+    if (posterization_algorithm == 0)
+    {
+        map_value = [&](uint8_t c) { return get_quantized_value_simple(c, invlevel); };
+    }
+    else
+    {
+        map_value = [&](uint8_t c) { return get_quantized_value(c, levels); };
+    }
+
+    for (int i = 0; i < width * height; i++)
+    {
+        int x = i % width;
+        int y = height - (i / width) - 1;
+        uint32_t pixel = image[i];
+        uint8_t* color = (uint8_t*)&pixel;
+        color[0] = map_value(color[0]);
+        color[1] = map_value(color[1]);
+        color[2] = map_value(color[2]);
+        if (color[3] > 0)
+        {
+            color[3] = 255;
+            point_t p;
+            p.x = x;
+            p.y = y;
+            auto it = colors.find(pixel);
+            if (it == std::end(colors))
+            {
+                std::vector<std::pair<uint32_t, point_t>> points;
+                points.reserve(500);
+                colors[pixel] = points;
+            }
+            colors[pixel].push_back({i, p});
+        }
+    }
+
+    char *buf;
+    size_t len;
+    FILE *fout = open_memstream(&buf, &len);
+
+    if (!svginfo->pathonly)
+    {
+        add_svg_header(fout, tr.bbox.bboxx, tr.bbox.bboxy);
+    }
+
+    for (auto& color : colors)
+    {
+        potrace_bitmap_t *bm = bm_new(width, height);
+        for (auto& c : color.second)
+        {
+            BM_UPUT(bm, c.second.x, c.second.y, 1);
+        }
+        potrace_state_t *st = potrace_trace(param, bm);
+        if (!st || st->status != POTRACE_STATUS_OK)
+        {
+            fprintf(stderr, "trace error: %s\n", strerror(errno));
+            exit(2);
+        }
+
+        if (!st->plist)
+        {
+            continue;
+        }
+
+        if (svginfo->transform)
+        {
+            uint8_t* c = (uint8_t*)&(color.first);
+            auto hex_color = rgb_to_hex(c[0], c[1], c[2]);
+            start_group(fout, &(tr.transform), hex_color);
+            free(hex_color);
+        }
+        // conver the trace to image information for svg backend generation.
+        bm_free(bm);    
+        write_paths_transparent_rec(fout, st->plist, trans, svginfo->pathonly);
+        if (svginfo->transform)
+        {
+            end_group(fout);
+        }
+        potrace_state_free(st);
+    }
+    if (!svginfo->pathonly)
+    {
+        add_footer(fout);
+    }
+    fflush(fout);
+
+    // release resource.
+    fclose(fout);
+    
+    return buf;
+}
+
+const char *start(
+    uint8_t pixels[],
+    int width,
+    int height,
+    uint8_t transform,
+    uint8_t pathonly,
+    uint8_t extract_colors,
+    uint8_t quantlevel,
+    uint8_t posterization_algorithm,
+    int turdsize,
+    int turnpolicy,
+    double alphamax,
+    int opticurve,
+    double opttolerace
+    )
+{
+    uint32_t* image = (uint32_t*)pixels;
+
+    imginfo_t imginfo = {
+        .pixwidth = width,
+        .pixheight = height,
+    };
+    
+    potrace_param_t param = {
+        .turdsize = turdsize,
+        .turnpolicy = turnpolicy,
+        .alphamax = alphamax,
+        .opticurve = opticurve,
+        .opttolerance = opttolerace,
+    };
+
+    calc_dimensions(&imginfo);
+
+    svginfo_t svginfo = {
+        .transform = transform,
+        .pathonly = pathonly,
+    };
+
+    if (!extract_colors) 
+    {
+        return start_monochromatic(image, &imginfo, &param, &svginfo);
+    }
+    return start_color(image, &imginfo, &param, &svginfo, quantlevel, posterization_algorithm);
 }

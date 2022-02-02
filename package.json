@@ -15,8 +15,12 @@
   ],
   "scripts": {
     "start": "npx http-server",
-    "clean": "shx rm -rf ./dist",
-    "build": "npm run clean && shx mkdir ./dist && bash ./build.sh && shx echo \"export { potrace, ready as init };\" >> ./dist/index.js && npm run terser",
+    "clean": "run-script-os",
+    "clean:win32": "if exist dist rd /s /q dist",
+    "clean:default": "shx rm -rf ./dist",
+    "build": "run-script-os",
+    "build:win32": "npm run clean && mkdir dist && @powershell -NoProfile -ExecutionPolicy Unrestricted -Command ./build.ps1 && npm run terser",
+    "build:default": "npm run clean && shx mkdir ./dist && bash ./build.sh && shx echo \"export { potrace, ready as init };\" >> ./dist/index.js && npm run terser",
     "terser": "npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.min.js -- ./dist/index.js",
     "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/",
     "fix": "npx prettier --write .",
@@ -38,6 +42,7 @@
     "eslint-config-prettier": "^8.3.0",
     "http-server": "^14.0.0",
     "prettier": "^2.5.1",
+    "run-script-os": "^1.1.6",
     "shx": "^0.3.3",
     "terser": "^5.10.0"
   },
