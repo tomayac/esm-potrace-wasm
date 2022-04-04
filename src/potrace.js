@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /**
  * A modern ESM build of the Potrace (http://potrace.sourceforge.net/) library for use in the browser.
  * Copyright (C) 2021 Thomas Steiner
@@ -24,7 +25,7 @@
  * @param {Object} options
  * @return {Promise<string>}
  */
-const potrace = async (imageBitmapSource, options = {}) => {
+async function potrace(imageBitmapSource, options = {}) {
   options = Object.assign(
     {
       turdsize: 2,
@@ -111,7 +112,7 @@ const potrace = async (imageBitmapSource, options = {}) => {
       .map((path) => 'M' + path);
   }
   return result;
-};
+}
 
 /**
  * @return {Promise<void>} promise to wait for wasm loaded.
@@ -150,10 +151,4 @@ function wrapStart() {
     'number', // opticurve
     'number', // opttolerance
   ]);
-}
-
-// export the functions in server env.
-if (typeof module !== 'undefined') {
-  const init = ready;
-  module.exports = { potrace, init };
 }

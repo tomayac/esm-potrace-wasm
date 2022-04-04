@@ -22,7 +22,7 @@
     "build": "run-script-os",
     "build:win32": "npm run clean && mkdir dist && @powershell -NoProfile -ExecutionPolicy Unrestricted -Command ./build.ps1 && npm run terser",
     "build:default": "npm run clean && shx mkdir ./dist && bash ./build.sh && npm run terser",
-    "terser": "shx echo \"export { potrace, ready as init };\" >> ./dist/temp.js && npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.js -- ./dist/temp.js && shx rm ./dist/temp.js && shx cp ./src/index.d.ts ./dist/index.d.ts",
+    "terser": "npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.js -- ./dist/temp.js && shx rm ./dist/temp.js && shx cp ./src/index.d.ts ./dist/index.d.ts",
     "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/",
     "fix": "npx prettier --write .",
     "prepare": "npm run lint && npm run fix && npm run build"
@@ -38,14 +38,14 @@
   },
   "homepage": "https://github.com/tomayac/esm-potrace-wasm#readme",
   "devDependencies": {
-    "eslint": "^8.8.0",
+    "eslint": "^8.12.0",
     "eslint-config-google": "^0.14.0",
-    "eslint-config-prettier": "^8.3.0",
+    "eslint-config-prettier": "^8.5.0",
     "http-server": "^14.1.0",
-    "prettier": "^2.5.1",
+    "prettier": "^2.6.2",
     "run-script-os": "^1.1.6",
     "shx": "^0.3.4",
-    "terser": "^5.10.0"
+    "terser": "^5.12.1"
   },
   "eslintConfig": {
     "parserOptions": {
