@@ -1,6 +1,11 @@
-import { potrace, init } from '../dist/index.js';
+import potraceModule from '../dist/index.js';
 
 (async () => {
+  const Module = await potraceModule();
+  // @connorjclark Unsure about the next two lines.
+  await Module.ready;
+  const potrace = Module._start;
+
   const pre1 = document.querySelector('#pre1');
   const pre2 = document.querySelector('#pre2');
   const pre3 = document.querySelector('#pre3');
@@ -13,8 +18,6 @@ import { potrace, init } from '../dist/index.js';
   const blob1 = await fetch('./logo.png').then((response) => response.blob());
   const blob2 = await fetch('./avatar.jpg').then((response) => response.blob());
 
-  await init();
-
   potrace(blob1, {
     turdsize: 2,
     turnpolicy: 4,
@@ -25,8 +28,8 @@ import { potrace, init } from '../dist/index.js';
     extractcolors: true,
     posterizelevel: 2,
     posterizationalgorithm: 0, // 0: simple, 1: interpolation
-  }).then((svg) => {
-    div1.innerHTML = svg;
+  }) .then((svg) => {
+    =div1.innerHTML = svg;
     svg = svg.replaceAll('><', '>\n<');
     pre1.textContent = svg + '\n\n(' + svg.length + ')';
   });
