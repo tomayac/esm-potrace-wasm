@@ -83,7 +83,6 @@ const potrace = async (imageBitmapSource, options = {}) => {
     canvas.height = Number(canvasImageSource.height);
     ctx.drawImage(canvasImageSource, 0, 0, canvas.width, canvas.height);
     imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    document.body.append(canvas);
   } else {
     imageData = /** @type {ImageData} */ (imageBitmapSource);
   }
