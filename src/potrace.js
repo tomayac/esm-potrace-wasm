@@ -87,9 +87,12 @@ const potrace = async (imageBitmapSource, options = {}) => {
     imageData = /** @type {ImageData} */ (imageBitmapSource);
   }
   const start = wrapStart();
+  const allocateFrame = wrapAllocateFrame();
+  const freeResources = wrapFreeResources();
   await ready();
-  const result = start(
-    imageData.data,
+  const frameOffset = allocateFrame(imageData.width, imageData.height);
+  HEAPU8.set(imageData.data, frameOffset);
+  let result = start(
     imageData.width,
     imageData.height,
     true,
@@ -104,11 +107,12 @@ const potrace = async (imageBitmapSource, options = {}) => {
     options.opttolerance
   );
   if (options.pathonly) {
-    return result
+    result = result
       .split('M')
       .filter((path) => path)
       .map((path) => 'M' + path);
   }
+  freeResources();
   return result;
 };
 
@@ -135,7 +139,6 @@ function ready() {
 function wrapStart() {
   // @ts-ignore
   return cwrap('start', 'string', [
-    'array', // pixels
     'number', // width
     'number', // height
     'number', // transform
@@ -149,6 +152,25 @@ function wrapStart() {
     'number', // opticurve
     'number', // opttolerance
   ]);
+}
+
+/**
+ * @returns wrapped function for allocate_frame.
+ */
+function wrapAllocateFrame() {
+  // @ts-ignore
+  return cwrap('allocate_frame', 'number', [
+    'number', // width
+    'number', // height
+  ]);
+}
+
+/**
+ * @returns wrapped function for free_resources.
+ */
+function wrapFreeResources() {
+  // @ts-ignore
+  return cwrap('free_resources', null, []);
 }
 
 // export the functions in server env.
