@@ -16,6 +16,9 @@
 #include <algorithm>
 #include <memory>
 
+std::vector<char> frame;
+char* svgStr = nullptr;
+
 static uint8_t get_quantized_value(uint8_t color, std::vector<float>& levels)
 {
     if (color == 255 || color == 0)
@@ -260,7 +263,6 @@ const char *start_color(
 }
 
 const char *start(
-    uint8_t pixels[],
     int width,
     int height,
     uint8_t transform,
@@ -275,7 +277,11 @@ const char *start(
     double opttolerace
     )
 {
-    uint32_t* image = (uint32_t*)pixels;
+    if (frame.size() != width * height * 4)
+    {
+        return "";
+    }
+    uint32_t* image = (uint32_t*)frame.data();
 
     imginfo_t imginfo = {
         .pixwidth = width,
@@ -299,7 +305,30 @@ const char *start(
 
     if (!extract_colors) 
     {
-        return start_monochromatic(image, &imginfo, &param, &svginfo);
+        svgStr = (char*)start_monochromatic(image, &imginfo, &param, &svginfo);
     }
-    return start_color(image, &imginfo, &param, &svginfo, quantlevel, posterization_algorithm);
+    else 
+    {
+        svgStr = (char*)start_color(image, &imginfo, &param, &svginfo, quantlevel, posterization_algorithm);
+    }
+    return svgStr;
+}
+
+unsigned long allocate_frame(
+      int width,
+      int height
+    )
+{
+    frame.resize(width * height * 4);
+    return reinterpret_cast<unsigned long>(frame.data());
+}
+
+void free_resources()
+{
+    if (svgStr != nullptr)
+    {
+        free(svgStr);
+        svgStr = nullptr;
+    }
+    frame.clear();
 }

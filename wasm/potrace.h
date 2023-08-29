@@ -54,7 +54,6 @@ typedef struct imginfo_s imginfo_t;
 extern "C" {
   EMSCRIPTEN_KEEPALIVE
   const char *start(
-    uint8_t pixels[],
     int width,
     int height,
     uint8_t transform,
@@ -68,5 +67,14 @@ extern "C" {
     int opticurve,
     double opttolerace
     );
+
+    EMSCRIPTEN_KEEPALIVE
+    unsigned long allocate_frame(
+      int width,
+      int height
+    );
+
+    EMSCRIPTEN_KEEPALIVE
+    void free_resources();
   }
 #endif /* POTRACE_H */

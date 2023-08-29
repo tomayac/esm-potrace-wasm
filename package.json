@@ -1,6 +1,6 @@
 {
   "name": "esm-potrace-wasm",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "A modern ESM build of the Potrace library for use in the browser.",
   "main": "./dist/index.js",
   "browser": "./dist/index.js",
