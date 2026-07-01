@@ -88,8 +88,10 @@ const potrace = async (imageBitmapSource, options = {}) => {
   }
   const start = wrapStart();
   await ready();
+  const ptr = Module._malloc(imageData.data.length);
+  Module.HEAPU8.set(imageData.data, ptr);
   const result = start(
-    imageData.data,
+    ptr,
     imageData.width,
     imageData.height,
     true,
@@ -103,6 +105,7 @@ const potrace = async (imageBitmapSource, options = {}) => {
     options.opticurve,
     options.opttolerance
   );
+  Module._free(ptr);
   if (options.pathonly) {
     return result
       .split('M')
@@ -135,7 +138,7 @@ function ready() {
 function wrapStart() {
   // @ts-ignore
   return cwrap('start', 'string', [
-    'array', // pixels
+    'number', // pixels
     'number', // width
     'number', // height
     'number', // transform
