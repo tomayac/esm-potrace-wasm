@@ -1,5 +1,5 @@
 export function potrace(
   imageBitmapSource: ImageBitmapSource,
   options: Object
-): Promise<string>;
+): Promise<string | string[]>;
 export function init(): Promise<void>;

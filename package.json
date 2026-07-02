@@ -1,6 +1,6 @@
 {
   "name": "esm-potrace-wasm",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "description": "A modern ESM build of the Potrace library for use in the browser.",
   "main": "./dist/index.js",
   "browser": "./dist/index.js",
@@ -23,7 +23,7 @@
     "build:win32": "npm run clean && mkdir dist && @powershell -NoProfile -ExecutionPolicy Unrestricted -Command ./build.ps1 && npm run terser",
     "build:default": "npm run clean && shx mkdir ./dist && bash ./build.sh && npm run terser",
     "terser": "shx echo \"export { potrace, ready as init };\" >> ./dist/temp.js && npx terser --compress --mangle --comments /@license/ --ecma 8 --module --output ./dist/index.js -- ./dist/temp.js && shx rm ./dist/temp.js && shx cp ./src/index.d.ts ./dist/index.d.ts",
-    "lint": "npx eslint . --ext .js,.mjs --fix --ignore-pattern dist/",
+    "lint": "npx eslint . --fix",
     "fix": "npx prettier --write .",
     "prepare": "npm run lint && npm run fix && npm run build"
   },
@@ -38,27 +38,14 @@
   },
   "homepage": "https://github.com/tomayac/esm-potrace-wasm#readme",
   "devDependencies": {
-    "eslint": "^8.22.0",
+    "eslint": "^10.6.0",
     "eslint-config-google": "^0.14.0",
-    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-prettier": "^10.1.8",
     "http-server": "^14.1.1",
-    "prettier": "^2.7.1",
+    "prettier": "^3.9.4",
     "run-script-os": "^1.1.6",
-    "shx": "^0.3.4",
-    "terser": "^5.15.0"
-  },
-  "eslintConfig": {
-    "parserOptions": {
-      "ecmaVersion": 2020,
-      "sourceType": "module"
-    },
-    "extends": [
-      "google",
-      "prettier"
-    ],
-    "rules": {
-      "valid-jsdoc": "off"
-    }
+    "shx": "^0.4.0",
+    "terser": "^5.48.0"
   },
   "keywords": [
     "potrace"

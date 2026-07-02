@@ -19,6 +19,20 @@
 
 /** @license SPDX-License-Identifier: GPL-2.0-or-later */
 
+// `ALLOW_MEMORY_GROWTH` backs the wasm heap with a resizable ArrayBuffer.
+// Some browsers refuse to run `TextDecoder#decode()` on views of a
+// resizable ArrayBuffer, which breaks every wasm-to-JS string (e.g. the
+// SVG result). Copy such views into a fixed-size buffer before decoding.
+if (typeof TextDecoder !== 'undefined') {
+  const originalDecode = TextDecoder.prototype.decode;
+  TextDecoder.prototype.decode = function (input, options) {
+    if (input && input.buffer && input.buffer.resizable) {
+      input = input.slice();
+    }
+    return originalDecode.call(this, input, options);
+  };
+}
+
 /**
  * @param {ImageBitmapSource} imageBitmapSource
  * @param {Object} options
