@@ -35,8 +35,8 @@ if (typeof TextDecoder !== 'undefined') {
 
 /**
  * @param {ImageBitmapSource} imageBitmapSource
- * @param {Object} options
- * @return {Promise<string>}
+ * @param {Object} [options]
+ * @return {Promise<string|string[]>}
  */
 const potrace = async (imageBitmapSource, options = {}) => {
   options = Object.assign(
